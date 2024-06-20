@@ -66,12 +66,12 @@ class AuthController extends Controller
             ], 401);
         }
 
-        $token = $user->createToken('AuthToken')->plainTextToken;
+        $accessToken = $user->createToken('AuthToken')->plainTextToken;
+        $refreshToken = $user->createToken('RefreshToken')->plainTextToken;
 
         return response()->json([
-            'message' => 'User successfully logged in',
-            'user' => $user,
-            'token' => $token
+            'access_token' => $accessToken,
+            'refresh_token' => $refreshToken,
         ], 200);
     }
 

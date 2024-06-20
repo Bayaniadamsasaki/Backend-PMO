@@ -22,7 +22,12 @@ class LaporanKebakaran extends Model
         'isi'
     ];
 
-     /**
+    protected $casts = [
+        'tanggal' => 'string',
+    ];
+
+
+    /**
      * image
      *
      * @return Attribute
