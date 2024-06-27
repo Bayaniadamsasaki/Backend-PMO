@@ -7,7 +7,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
-use Laravel\Sanctum\HasApiTokens;
 
 class AuthController extends Controller
 {
@@ -18,6 +17,7 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8',
+            'role' => 'sometimes|string|in:user,admin', // Validasi untuk role
         ]);
 
         if ($validator->fails()) {
@@ -28,6 +28,7 @@ class AuthController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
+            'role' => $request->role ?? 'user', // Default role 'user' jika tidak disertakan
         ]);
 
         $token = $user->createToken('AuthToken')->plainTextToken;
@@ -39,14 +40,14 @@ class AuthController extends Controller
         ], 201);
     }
 
-    //GetUser
+    // Get Users
     public function getUsers()
     {
         $users = User::all();
         return response()->json(['users' => $users], 200);
     }
 
-    //Login user
+    // Login user
     public function login(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -68,12 +69,32 @@ class AuthController extends Controller
 
         $accessToken = $user->createToken('AuthToken')->plainTextToken;
         $refreshToken = $user->createToken('RefreshToken')->plainTextToken;
+        //role
+        $role = $user->role;
 
         return response()->json([
             'access_token' => $accessToken,
             'refresh_token' => $refreshToken,
+            'role' => $role
         ], 200);
     }
+
+    // Logout user
+    public function logout(Request $request)
+    {
+        if (!$request->user()) {
+            return response()->json([
+                'message' => 'User not authenticated'
+            ], 401);
+        }
+
+        $request->user()->tokens()->delete(); // Menghapus semua token akses yang terkait dengan pengguna ini
+
+        return response()->json([
+            'message' => 'User successfully logged out'
+        ], 200);
+    }
+
 
     // Delete user
     public function deleteUser(Request $request)
@@ -101,7 +122,7 @@ class AuthController extends Controller
         ], 200);
     }
 
-    //Update User
+    // Update User
     public function updateUser(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -109,6 +130,7 @@ class AuthController extends Controller
             'name' => 'sometimes|required|string|max:255',
             'email' => 'sometimes|required|string|email|max:255|unique:users,email,' . $request->id,
             'password' => 'sometimes|required|string|min:8',
+            'role' => 'sometimes|string|in:user,admin', // Validasi untuk role
         ]);
 
         if ($validator->fails()) {
@@ -135,6 +157,10 @@ class AuthController extends Controller
             $user->password = Hash::make($request->password);
         }
 
+        if ($request->has('role')) {
+            $user->role = $request->role;
+        }
+
         $user->save();
 
         return response()->json([
@@ -142,5 +168,4 @@ class AuthController extends Controller
             'user' => $user
         ], 200);
     }
-    
 }
